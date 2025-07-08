@@ -1,6 +1,7 @@
 package client;
 
 import com.beust.jcommander.JCommander;
+import com.google.gson.Gson;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -10,9 +11,9 @@ import java.net.Socket;
 
 public class Main {
     public static void main(String[] args) {
-        Args arguments = new Args();
+        Request request = new Request();
         JCommander.newBuilder()
-                .addObject(arguments)
+                .addObject(request)
                 .build()
                 .parse(args);
 
@@ -22,12 +23,10 @@ public class Main {
              DataInputStream input = new DataInputStream(socket.getInputStream());
              DataOutputStream output = new DataOutputStream(socket.getOutputStream())) {
             System.out.println("Client started!");
-            String msg = arguments.getType() + " " + arguments.getIndex();
-            if (arguments.getMessage() != null) {
-                msg += " " + arguments.getMessage();
-            }
-            output.writeUTF(msg);
-            System.out.println("Sent: " + msg);
+            String requestJson = new Gson().toJson(request);
+            output.writeUTF(requestJson);
+            System.out.println("Sent: " + requestJson);
+
             String receivedMsg = input.readUTF();
             System.out.println("Received: " + receivedMsg);
         } catch (IOException e) {

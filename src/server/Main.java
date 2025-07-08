@@ -1,15 +1,20 @@
 package server;
 
+import client.Request;
+import com.google.gson.Gson;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Main {
 
-    private static final String[] array = new String[1000];
+    private static final Map<String, String> database = new HashMap<>();
 
     public static void main(String[] args) {
 
@@ -22,16 +27,19 @@ public class Main {
                 try (Socket socket = server.accept();
                      DataInputStream input = new DataInputStream(socket.getInputStream());
                      DataOutputStream output = new DataOutputStream(socket.getOutputStream())) {
-                    String[] arguments = input.readUTF().split("\\s",3);
 
-                    if (arguments[0].equals("exit")) {
-                        output.writeUTF("OK");
+                    Request request = new Gson().fromJson(input.readUTF(), Request.class);
+
+                    if (request.getType().equals("exit")) {
+                        output.writeUTF(new Gson().toJson(new Response("OK")));
+                        System.out.println("Server has been stopped, because of 'exit' argument (request).");
                         break;
                     }
 
-                    String response = processArguments(arguments);
-                    output.writeUTF(response);
-                    System.out.println("Sent: " + response);
+                    Response response = processRequest(request);
+                    String responseJson = new Gson().toJson(response);
+                    output.writeUTF(responseJson);
+                    System.out.println("Sent: " + responseJson);
 
                 } catch (IOException e) {
                     System.out.println("Server exception: " + e);
@@ -42,48 +50,36 @@ public class Main {
         }
     }
 
-    public static String processArguments(String[] arguments) {
-        if (arguments.length < 2) {
-            return "ERROR";
+    public static Response processRequest(Request request) {
+
+        if (request.getType().isEmpty()) {
+            return new Response("ERROR", "No such type");
         }
 
-        String command = arguments[0];
-        if (command.isEmpty()) {
-            return "ERROR";
-        }
-
-        int position;
-        try {
-            position = Integer.parseInt(arguments[1]) - 1;
-        } catch (NumberFormatException e) {
-            return "ERROR";
-        }
-
-        if (position < 0 || position > 999) {
-           return "ERROR";
-        }
-
-        switch (command) {
+        switch (request.getType()) {
             case "set" -> {
-                if (arguments.length != 3) {
-                    return "ERROR";
+                if (request.getKey().isEmpty() || request.getValue().isEmpty()) {
+                    return new Response("ERROR", "Key or Value or both is empty");
                 }
-                array[position] = arguments[2];
-                return "OK";
+                database.put(request.getKey(), request.getValue());
+                return new Response("OK");
             }
             case "get" -> {
-                if (array[position] != null) {
-                    return array[position];
+                if (database.get(request.getKey()) != null) {
+                    return new Response("OK", database.get(request.getKey()), null);
                 } else {
-                    return "ERROR";
+                    return new Response("ERROR", "No such key");
                 }
             }
             case "delete" -> {
-                array[position] = null;
-                return "OK";
+                if (database.get(request.getKey()) != null) {
+                    database.remove(request.getKey());
+                    return new Response("OK");
+                }
+                return new Response("ERROR", "No such key");
             }
-            default ->{
-                return "Unknown command";
+            default -> {
+                return new Response("ERROR", "Unknown command");
             }
         }
     }
