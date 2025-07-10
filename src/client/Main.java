@@ -8,6 +8,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class Main {
     public static void main(String[] args) {
@@ -19,14 +22,29 @@ public class Main {
 
         String address = "127.0.0.1";
         int port = 23456;
+
+        String requestJson;
+
         try (Socket socket = new Socket(InetAddress.getByName(address), port);
              DataInputStream input = new DataInputStream(socket.getInputStream());
              DataOutputStream output = new DataOutputStream(socket.getOutputStream())) {
             System.out.println("Client started!");
-            String requestJson = new Gson().toJson(request);
+
+            if (request.getFileName() != null) {
+                try {
+                    String stringPath = "src/client/data/" + request.getFileName();
+                    Path path = Paths.get(stringPath);
+                    requestJson = new String(Files.readAllBytes(path));
+                } catch (Exception e) {
+                    System.out.println("Cannot read file: " + e);
+                    return;
+                }
+            } else {
+                requestJson = new Gson().toJson(request);
+            }
+
             output.writeUTF(requestJson);
             System.out.println("Sent: " + requestJson);
-
             String receivedMsg = input.readUTF();
             System.out.println("Received: " + receivedMsg);
         } catch (IOException e) {
