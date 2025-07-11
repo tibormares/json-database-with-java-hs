@@ -30,5 +30,4 @@ public class Request {
     public String getFileName() {
         return fileName;
     }
-
 }

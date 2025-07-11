@@ -1,12 +1,13 @@
 package server;
 
-public class Response {
+import com.google.gson.JsonElement;
 
+public class Response {
     private String response;
-    private String value;
+    private JsonElement value;
     private String reason;
 
-    public Response(String response, String value, String reason) {
+    public Response(String response, JsonElement value, String reason) {
         this.response = response;
         this.value = value;
         this.reason = reason;
@@ -21,4 +22,15 @@ public class Response {
         this.response = response;
     }
 
+    public String getResponse() {
+        return response;
+    }
+
+    public JsonElement getValue() {
+        return value;
+    }
+
+    public String getReason() {
+        return reason;
+    }
 }
